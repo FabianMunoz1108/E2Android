@@ -1,3 +1,8 @@
 <resources>
     <string name="app_name">E2Android</string>
+    <string name="PAN">PAN</string>
+    <string name="MORENA">MORENA</string>
+    <string name="PRI">PRI</string>
+    <string name="PVEM">PVEM</string>
+    <string name="MC">MC</string>
 </resources>

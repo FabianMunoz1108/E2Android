@@ -6,5 +6,5 @@ import retrofit2.http.GET
 
 interface WeatherService {
     @GET("WeatherForecast")
-    suspend fun getWeatherForecasts(): Call<List<WeatherForecast>>
+    fun getWeatherForecasts(): Call<List<WeatherForecast>>
 }

@@ -6,5 +6,5 @@ import retrofit2.http.GET
 
 interface MyApi {
     @GET("Comments")
-    fun getComments():Call<List<Comments>>
+    fun getComments(): Call<List<Comments>>
 }

@@ -7,8 +7,13 @@ import android.view.View
 import android.widget.Button
 import android.widget.EditText
 import android.widget.ProgressBar
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import com.example.e2android.interfaces.MyApi
+import com.example.e2android.interfaces.WeatherService
+import com.example.e2android.interfaces.AuthService
 import com.example.e2android.models.Autenticacion
+import com.example.e2android.models.Partido
 import com.example.e2android.models.Respuesta
 import com.example.e2android.models.Usuario
 import com.example.e2android.models.WeatherForecast
@@ -19,15 +24,11 @@ import retrofit2.Callback
 import retrofit2.Response
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
-import retrofit2.http.Body
-import retrofit2.http.GET
-import retrofit2.http.Headers
-import retrofit2.http.POST
 
 class MainActivity : AppCompatActivity() {
-    private val URLBASE: String = "https://jsonplaceholder.typicode.com/"
+    private val URLBASE: String = "https://pld.congresogto.gob.mx/api/"
     private val TAG: String = "CHECK_RESPONSE"
-    //private val sharedPreferences = getSharedPreferences("MyApp_Prefs", Context.MODE_PRIVATE)
+    private var NOMBREUSUARIO : String = "Fabián"//Este valor se remplazará con el obtenido desde la API
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -38,11 +39,14 @@ class MainActivity : AppCompatActivity() {
         val txtCon: EditText = findViewById(R.id.PasswordEditText)
         val btnLogin: Button = findViewById(R.id.LoginButton)
         txtUsu.setText("fabian.munoz@congresogto.gob.mx")
-        txtCon.setText("16Ctie2023*")
+        txtCon.setText("21Ctie2023*")
 
         btnLogin.setOnClickListener {
             progressBar.visibility = View.VISIBLE
-            postAuthenticateUser(txtUsu.text.toString(), txtCon.text.toString())
+
+            /*Omitimos temporalmente la validación de usuario a traves de API, ya que es necesario VPN*/
+            //postAuthenticateUser(txtUsu.text.toString(), txtCon.text.toString())
+            mostrarActividad()
         }
     }
 
@@ -59,13 +63,29 @@ class MainActivity : AppCompatActivity() {
             println("${e.message}")
         }
     }
+    private fun mostrarActividad()
+    {
+        /*Despliegue de nueva actividad*/
+        val intent = Intent(this@MainActivity, WelcomeActivity::class.java)
+        val partidos = arrayOf(
+            Partido("PAN", 21),
+            Partido("MORENA", 6),
+            Partido("PRI", 4),
+            Partido("PVEM", 2),
+            Partido("MC", 1)
+        )
+        intent.putExtra("partidos", partidos)
+        intent.putExtra("nombre", NOMBREUSUARIO)
+        intent.putExtra("total", "34".toString().toDouble())
+        startActivity(intent)
+    }
 
     private fun postAuthenticateUser(user: String, password: String): Respuesta<Usuario>? {
         var usuario: Respuesta<Usuario>? = null
         val progressBar = findViewById<ProgressBar>(R.id.progressBar)
 
         val api = Retrofit.Builder()
-            .baseUrl("https://pld.congresogto.gob.mx/api/")
+            .baseUrl(URLBASE)
             .addConverterFactory(GsonConverterFactory.create())
             .build()
             .create(AuthService::class.java)
@@ -76,18 +96,16 @@ class MainActivity : AppCompatActivity() {
                 call: Call<Respuesta<Usuario>>,
                 response: Response<Respuesta<Usuario>>
             ) {
+                progressBar.visibility = View.GONE
                 if (response.isSuccessful) {
                     usuario = response.body()
 
                     if (usuario != null) {
                         val token: String? = usuario!!.datos?.get(0)?.token
-                        val nombre = usuario!!.datos?.get(0)?.nombreCompleto
-                        //sharedPreferences.edit().putString("auth_token", token).apply()
+                        NOMBREUSUARIO = usuario!!.datos?.get(0)?.nombreCompleto!!
 
-                        /*Despliegue de nueva actividad*/
-                        val intent = Intent(this@MainActivity, WelcomeActivity::class.java)
-                        intent.putExtra("nombre", nombre)
-                        startActivity(intent)
+                        /*Despliegue de actividad de bienvenida*/
+                        mostrarActividad()
                     }
                 }
             }
@@ -95,6 +113,9 @@ class MainActivity : AppCompatActivity() {
             override fun onFailure(call: Call<Respuesta<Usuario>>, t: Throwable) {
                 Log.i(TAG, "on Failure: ${t.message}")
                 progressBar.visibility = View.GONE
+
+                val toast = Toast.makeText(this@MainActivity, "Error ${t.message}!", Toast.LENGTH_LONG)
+                toast.show()
             }
         })
         return usuario
@@ -102,7 +123,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun getWeatherForeCasts() {
         val api = Retrofit.Builder()
-            .baseUrl("https://pld.congresogto.gob.mx/api/")
+            .baseUrl(URLBASE)
             .addConverterFactory(GsonConverterFactory.create())
             .build()
             .create(WeatherService::class.java)
@@ -136,7 +157,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun getAllComments() {
         val api = Retrofit.Builder()
-            .baseUrl(URLBASE)
+            .baseUrl("https://jsonplaceholder.typicode.com/")
             .addConverterFactory(GsonConverterFactory.create())
             .build()
             .create(MyApi::class.java)
@@ -160,20 +181,4 @@ class MainActivity : AppCompatActivity() {
             }
         })
     }
-}
-
-interface AuthService {
-    @Headers("Content-Type: application/json")
-    @POST("Usuarios/Token")
-    fun autenticarUsuario(@Body request: Autenticacion): Call<Respuesta<Usuario>>
-}
-
-interface MyApi {
-    @GET("Comments")
-    fun getComments(): Call<List<Comments>>
-}
-
-interface WeatherService {
-    @GET("WeatherForecast")
-    fun getWeatherForecasts(): Call<List<WeatherForecast>>
 }
