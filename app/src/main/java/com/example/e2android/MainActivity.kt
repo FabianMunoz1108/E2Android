@@ -9,9 +9,9 @@ import android.widget.EditText
 import android.widget.ProgressBar
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import com.example.e2android.interfaces.AuthService
 import com.example.e2android.interfaces.MyApi
 import com.example.e2android.interfaces.WeatherService
-import com.example.e2android.interfaces.AuthService
 import com.example.e2android.models.Autenticacion
 import com.example.e2android.models.Partido
 import com.example.e2android.models.Respuesta
@@ -24,6 +24,8 @@ import retrofit2.Callback
 import retrofit2.Response
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
+import java.io.ByteArrayOutputStream
+import java.io.ObjectOutputStream
 
 class MainActivity : AppCompatActivity() {
     private val URLBASE: String = "https://pld.congresogto.gob.mx/api/"
@@ -63,21 +65,49 @@ class MainActivity : AppCompatActivity() {
             println("${e.message}")
         }
     }
-    private fun mostrarActividad()
-    {
+    private fun mostrarActividad() {
         /*Despliegue de nueva actividad*/
         val intent = Intent(this@MainActivity, WelcomeActivity::class.java)
         val partidos = arrayOf(
-            Partido("PAN", 21),
-            Partido("MORENA", 6),
-            Partido("PRI", 4),
-            Partido("PVEM", 2),
-            Partido("MC", 1)
+            Partido(
+                "https://congreso-gto.s3.amazonaws.com/uploads/partido/logo/1/pan_l.png",
+                "PAN",
+                21
+            ),
+            Partido(
+                "https://congreso-gto.s3.amazonaws.com/uploads/partido/logo/8/morena_s.png",
+                "MORENA",
+                6
+            ),
+            Partido(
+                "https://congreso-gto.s3.amazonaws.com/uploads/partido/logo/2/pri_s.png",
+                "PRI",
+                4
+            ),
+            Partido(
+                "https://congreso-gto.s3.amazonaws.com/uploads/partido/logo/3/pvem_s.png",
+                "PVEM",
+                2
+            ),
+            Partido(
+                "https://congreso-gto.s3.amazonaws.com/uploads/partido/logo/9/logo_mc.png",
+                "MC",
+                1
+            )
         )
         intent.putExtra("partidos", partidos)
         intent.putExtra("nombre", NOMBREUSUARIO)
-        intent.putExtra("total", "34".toString().toDouble())
+        intent.putExtra("partidos", serializePartidoArray(partidos))
         startActivity(intent)
+    }
+
+    fun serializePartidoArray(partidos: Array<Partido>): ByteArray {
+        val byteArrayOutputStream = ByteArrayOutputStream()
+        val objectOutputStream = ObjectOutputStream(byteArrayOutputStream)
+        objectOutputStream.writeObject(partidos)
+        objectOutputStream.close()
+
+        return byteArrayOutputStream.toByteArray()
     }
 
     private fun postAuthenticateUser(user: String, password: String): Respuesta<Usuario>? {

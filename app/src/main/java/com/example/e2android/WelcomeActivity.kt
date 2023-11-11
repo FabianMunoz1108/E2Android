@@ -7,9 +7,12 @@ import android.widget.EditText
 import android.widget.ImageView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.app.ActivityCompat
+import androidx.constraintlayout.widget.ConstraintLayout
 import com.bumptech.glide.Glide
+import com.example.e2android.models.DecimalTextWatcher
 import com.example.e2android.models.Partido
+import java.io.ByteArrayInputStream
+import java.io.ObjectInputStream
 
 class WelcomeActivity : AppCompatActivity() {
 
@@ -17,33 +20,39 @@ class WelcomeActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.welcome_activity)
 
-        val image1 = findViewById<ImageView>(R.id.imageView1)
-        val image2 = findViewById<ImageView>(R.id.imageView2)
-        val image3 = findViewById<ImageView>(R.id.imageView3)
-        val image4 = findViewById<ImageView>(R.id.imageView4)
-        val image5 = findViewById<ImageView>(R.id.imageView5)
+        val layout = findViewById<ConstraintLayout>(R.id.contenedor)
+        val editTextList = mutableListOf<EditText>()
+        val imageViewList = mutableListOf<ImageView>()
 
-        Glide.with(this)
-            .load("https://congreso-gto.s3.amazonaws.com/uploads/partido/logo/1/pan_l.png")
-            .into(image1)
-        Glide.with(this)
-            .load("https://congreso-gto.s3.amazonaws.com/uploads/partido/logo/8/morena_s.png")
-            .into(image2)
-        Glide.with(this)
-            .load("https://congreso-gto.s3.amazonaws.com/uploads/partido/logo/2/pri_s.png")
-            .into(image3)
-        Glide.with(this)
-            .load("https://congreso-gto.s3.amazonaws.com/uploads/partido/logo/3/pvem_s.png")
-            .into(image4)
-        Glide.with(this)
-            .load("https://congreso-gto.s3.amazonaws.com/uploads/partido/logo/9/logo_mc.png")
-            .into(image5)
+        for (i in 0 until layout.childCount) {
+            val child = layout.getChildAt(i)
 
+            if (child is EditText) {
+                editTextList.add(child)
+            }
+            else if(child is ImageView)
+            {
+                imageViewList.add(child)
+            }
+        }
+        val serializedPartidoArray = intent.getByteArrayExtra("partidos")
+        val partidos = serializedPartidoArray?.let { deserializePartidoArray(it) }
+        val total = partidos?.sumOf { it.integrantes }
+
+        partidos?.forEachIndexed { indice, partido ->
+
+            val img = imageViewList[indice]
+            Glide.with(this)
+                .load(partido.logo)
+                .into(img)
+
+            val txt = editTextList[indice]
+            txt.addTextChangedListener(DecimalTextWatcher(txt))
+
+            val avr = total?.let { calculatePercentage(partido.integrantes.toDouble(), it.toDouble()) }
+            txt.setText(avr.toString())
+        }
         val nombre = intent.getStringExtra("nombre")
-        val total = intent.getDoubleExtra("total", 0.0)
-        val lblNombre: EditText = findViewById(R.id.lblNombre)
-        lblNombre.setText(nombre + "-"+ total)
-
         val toast = Toast.makeText(this, "Bienvenido ${nombre}!", Toast.LENGTH_LONG)
         toast.show()
 
@@ -66,5 +75,26 @@ class WelcomeActivity : AppCompatActivity() {
             finishAndRemoveTask()
             android.os.Process.killProcess(android.os.Process.myPid())
         }
+        val btnCalculadora: Button = findViewById(R.id.btnCalculadora)
+        btnCalculadora.setOnClickListener {
+            val intent = Intent(this, CalculadoraActivity::class.java)
+
+            /*pasamos kilos y estatura para calcular el IMC*/
+            intent.putExtra("kilos", "75".toDouble())
+            intent.putExtra("estatura", "170".toDouble())
+
+            startActivity(intent)
+        }
+    }
+    fun calculatePercentage(part: Double, total: Double): Double {
+        return (part / total) * 100
+    }
+    fun deserializePartidoArray(serializedPartidoArray: ByteArray): Array<Partido> {
+        val byteArrayInputStream = ByteArrayInputStream(serializedPartidoArray)
+        val objectInputStream = ObjectInputStream(byteArrayInputStream)
+        val partidos = objectInputStream.readObject() as Array<Partido>
+        objectInputStream.close()
+
+        return partidos
     }
 }
